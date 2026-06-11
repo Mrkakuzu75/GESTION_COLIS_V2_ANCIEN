@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Récupération — ColisExpress{% endblock %}
+
+{% block content %}
+<div class="breadcrumb"><a href="/">Accueil</a> › <span>Récupération</span></div>
+<h1 class="page-title">🏠 Récupération de colis</h1>
+
+<div class="amz-card" style="margin-bottom:20px;">
+  <div class="amz-card-header">Rechercher le client</div>
+  <div class="amz-card-body">
+    <form method="get" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+      <div class="form-group" style="flex:1; min-width:240px;">
+        <label class="form-label">Téléphone ou nom du destinataire</label>
+        <input type="text" name="q" class="form-input" value="{{ query }}" placeholder="Ex: 0700000000 ou KONAN JEAN" autofocus style="font-size:15px; padding:12px;">
+      </div>
+      <button type="submit" class="btn btn-primary" style="padding:12px 24px;">🔍 Rechercher</button>
+    </form>
+  </div>
+</div>
+
+{% if query %}
+  {% if colis %}
+  <div style="margin-bottom:12px; font-size:14px; color:#565959;">
+    <strong>{{ colis|length }}</strong> colis en attente trouvé{{ 's' if colis|length > 1 else '' }}
+  </div>
+  {% for c in colis %}
+  <div class="amz-card" style="margin-bottom:14px; border-left:4px solid #FF9900;">
+    <div class="amz-card-header">
+      <div>
+        <span class="tracking-num">{{ c.numero_suivi or '#' ~ c.id }}</span>
+        <span class="badge badge-attente" style="margin-left:10px;">⏳ En attente</span>
+      </div>
+      <button class="btn btn-success" onclick="ouvrirModal({{ c.id }}, '{{ c.destinataire_nom|replace("'","\\'")|e }}', {{ c.prix_final or 0 }})">
+        🏠 Marquer récupéré
+      </button>
+    </div>
+    <div class="amz-card-body">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:16px;">
+        <div>
+          <div class="info-key">Destinataire</div>
+          <div class="info-val">{{ c.destinataire_nom or '—' }}</div>
+          <div style="font-size:12px;">{{ c.destinataire_telephone or '' }}</div>
+        </div>
+        <div>
+          <div class="info-key">Type de colis</div>
+          <div class="info-val">{{ c.type_colis or '—' }}</div>
+        </div>
+        <div>
+          <div class="info-key">Prix à payer</div>
+          <div class="info-val" style="color:#B12704; font-size:18px;">{{ c.prix_final|int if c.prix_final else '—' }}€</div>
+        </div>
+        <div>
+          <div class="info-key">Enregistré le</div>
+          <div class="info-val" style="font-size:13px;">{{ format_date(c.date_creation) }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">✅</div>
+    <h3>Aucun colis en attente</h3>
+    <p>Aucun colis en attente pour « <strong>{{ query }}</strong> »</p>
+  </div>
+  {% endif %}
+{% endif %}
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-recup">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🏠 Confirmer la récupération</span>
+      <button class="modal-close" onclick="document.getElementById('modal-recup').classList.remove('open')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom:16px; color:#565959;">Destinataire : <strong id="modal-dest"></strong></p>
+      <div class="form-group" style="margin-bottom:14px;">
+        <label class="form-label">Montant payé (€) <span class="required">*</span></label>
+        <input type="number" id="modal-montant" class="form-input" step="0.01" min="0" style="font-size:16px;">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nom du récupérateur <span class="required">*</span></label>
+        <input type="text" id="modal-nom" class="form-input" placeholder="Qui vient récupérer ?" style="font-size:16px;">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="document.getElementById('modal-recup').classList.remove('open')">Annuler</button>
+      <button class="btn btn-success" onclick="confirmer()">✅ Confirmer la récupération</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let cId = null;
+function ouvrirModal(id, dest, prix) {
+  cId = id;
+  document.getElementById('modal-dest').textContent = dest;
+  document.getElementById('modal-montant').value = prix;
+  document.getElementById('modal-nom').value = '';
+  document.getElementById('modal-recup').classList.add('open');
+}
+function confirmer() {
+  const montant = document.getElementById('modal-montant').value;
+  const nom = document.getElementById('modal-nom').value;
+  if (!montant || !nom) { alert('Tous les champs sont requis.'); return; }
+  fetch(`/api/colis/${cId}/statut`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({montant_paye:montant, recuperateur_nom:nom})
+  }).then(() => location.reload());
+}
+</script>
+{% endblock %}

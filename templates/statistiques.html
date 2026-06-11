@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Statistiques — ColisExpress{% endblock %}
+
+{% block content %}
+<div class="breadcrumb"><a href="/">Accueil</a> › <span>Statistiques financières</span></div>
+
+<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+  <h1 class="page-title" style="margin-bottom:0; border:none; padding:0;">📊 Tableau de bord financier</h1>
+  <form method="get" style="display:flex; align-items:center; gap:8px;">
+    <label style="font-size:13px; font-weight:600; color:#565959;">📅 Période :</label>
+    <select name="mois" class="form-select" style="width:auto;" onchange="this.form.submit()">
+      {% for m in mois_dispo %}
+      <option value="{{ m }}" {% if m == mois %}selected{% endif %}>{{ m }}</option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+
+<div class="stats-grid" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+  <div class="stat-card">
+    <div class="stat-label">☀️ CA Aujourd'hui</div>
+    <div class="stat-value">{{ "%.0f"|format(ca_jour) }}€</div>
+    <div class="stat-sub">≈ {{ "%.0f"|format(ca_jour * taux) }} FCFA</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-label">📅 CA du mois</div>
+    <div class="stat-value">{{ "%.0f"|format(ca_mois) }}€</div>
+    <div class="stat-sub">{{ mois }}</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-label">💸 Encaissé récup.</div>
+    <div class="stat-value">{{ "%.0f"|format(montant_recupere) }}€</div>
+    <div class="stat-sub">Réceptions payées</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-label">📈 Bénéfice</div>
+    <div class="stat-value">{{ "%.0f"|format(benefice) }}€</div>
+    <div class="stat-sub">CA - encaissements</div>
+  </div>
+  <div class="stat-card" style="border-left-color:#8B5CF6;">
+    <div class="stat-label">⏳ Colis en attente</div>
+    <div class="stat-value">{{ colis_attente }}</div>
+    <div class="stat-sub">Non récupérés</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-label">✅ Récupérés (mois)</div>
+    <div class="stat-value">{{ colis_recuperes }}</div>
+    <div class="stat-sub">Ce mois-ci</div>
+  </div>
+</div>
+
+<!-- COLIS URGENTS -->
+{% if urgents %}
+<div class="amz-card" style="margin-top:20px; border-left:4px solid #B12704;">
+  <div class="amz-card-header" style="color:#B12704;">
+    ⚠️ Colis en attente depuis plus de 7 jours ({{ urgents|length }})
+  </div>
+  <div class="amz-table-wrap">
+    <table class="amz-table">
+      <thead>
+        <tr>
+          <th>N° Suivi</th>
+          <th>Destinataire</th>
+          <th>Téléphone</th>
+          <th>Type</th>
+          <th>Prix</th>
+          <th>Enregistré le</th>
+          <th>Jours d'attente</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in urgents %}
+        {% set delta = ((now() - (c.date_creation | string | replace('T',' ') )[:19]) | string) %}
+        <tr>
+          <td><span class="tracking-num">{{ c.numero_suivi or '#' ~ c.id }}</span></td>
+          <td><strong>{{ c.destinataire_nom or '—' }}</strong></td>
+          <td>{{ c.destinataire_telephone or '—' }}</td>
+          <td>{{ c.type_colis or '—' }}</td>
+          <td style="color:#B12704; font-weight:700;">{{ c.prix_final|int if c.prix_final else '—' }}€</td>
+          <td style="font-size:12px;">{{ format_date(c.date_creation) }}</td>
+          <td>
+            <span style="background:#FEE2E2; color:#B12704; padding:3px 8px; border-radius:3px; font-weight:700; font-size:12px;">
+              +7j ⚠️
+            </span>
+          </td>
+          <td>
+            <a href="/recuperation?q={{ c.destinataire_telephone or '' }}" class="btn btn-sm btn-success">Récupérer</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="amz-card" style="margin-top:20px;">
+  <div class="amz-card-body">
+    <div class="empty-state" style="padding:30px;">
+      <div class="empty-icon">✅</div>
+      <h3>Aucun colis urgent</h3>
+      <p>Tous les colis en attente ont moins de 7 jours.</p>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

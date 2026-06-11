@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Liste des colis — ColisExpress{% endblock %}
+
+{% block content %}
+<div class="breadcrumb"><a href="/">Accueil</a> › <span>Liste des colis</span></div>
+
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+  <h1 class="page-title" style="margin-bottom:0;border:none;padding:0;">
+    📋 Liste des colis
+    <span style="font-size:14px;color:#565959;font-weight:400;margin-left:8px;">{{ colis|length }} résultat{{ 's' if colis|length > 1 else '' }}</span>
+  </h1>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <a href="/export/excel" class="btn btn-secondary btn-sm">📊 Exporter CSV</a>
+    <a href="/list" class="btn btn-secondary btn-sm">🔄 Actualiser</a>
+    <a href="/add" class="btn btn-primary btn-sm">➕ Nouveau colis</a>
+  </div>
+</div>
+
+<div class="filter-bar">
+  {% for f_val, f_label in [('tous','Tous'),('envois','✈️ Envois CI→FR'),('receptions','📥 Réceptions FR→CI'),('En attente','⏳ En attente'),('Parti','✈️ Parti'),('Récupéré','✅ Récupéré')] %}
+  <a href="/list?filtre={{ f_val }}" class="filter-btn {% if filtre == f_val %}active{% endif %}">{{ f_label }}</a>
+  {% endfor %}
+</div>
+
+<div class="amz-card">
+  {% if colis %}
+  <div class="amz-table-wrap">
+    <table class="amz-table">
+      <thead>
+        <tr>
+          <th>N° Suivi</th>
+          <th>ID</th>
+          <th>Type</th>
+          <th>Expéditeur</th>
+          <th>Destinataire</th>
+          <th>Téléphone</th>
+          <th>Colis</th>
+          <th>Poids</th>
+          <th>Prix</th>
+          <th>Statut</th>
+          <th>Créé le</th>
+          <th>Départ</th>
+          <th>Récup.</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in colis %}
+        {% set nb_photos = photos_count.get(c.id, 0) %}
+        <tr>
+          <td><span class="tracking-num">{{ c.numero_suivi or '—' }}</span></td>
+          <td style="color:#565959;">#{{ c.id }}</td>
+          <td>
+            {% if c.type_flux == 'envoi_france' %}<span class="badge badge-envoi">CI→FR</span>
+            {% else %}<span class="badge badge-reception">FR→CI</span>{% endif %}
+          </td>
+          <td>
+            {% if c.est_livreur %}<span title="Livreur" style="color:#565959;font-size:12px;">🚚</span> {{ c.livreur_nom or '<em style="color:#999;font-size:12px;">—</em>'|safe }}
+            {% else %}{{ c.deposant_nom or '—' }}{% endif %}
+          </td>
+          <td><strong>{{ c.destinataire_nom or '—' }}</strong></td>
+          <td style="font-size:12px;">{{ c.destinataire_telephone or '—' }}</td>
+          <td style="font-size:12px;">{{ c.type_colis or '—' }}{% if c.nombre_colis and c.nombre_colis > 1 %} ×{{ c.nombre_colis }}{% endif %}</td>
+          <td>{% if c.poids %}{{ c.poids_arrondi|int }}kg{% else %}—{% endif %}</td>
+          <td><strong style="color:#B12704;">{{ c.prix_final|int if c.prix_final else '—' }}€</strong></td>
+          <td>
+            {% if c.statut == 'En attente' %}<span class="badge badge-attente">⏳ En attente</span>
+            {% elif c.statut == 'Parti' %}<span class="badge badge-parti">✈️ Parti</span>
+            {% else %}<span class="badge badge-recupere">✅ Récupéré</span>{% endif %}
+          </td>
+          <td style="font-size:11px;color:#565959;white-space:nowrap;">{{ format_date(c.date_creation) }}</td>
+          <td style="font-size:11px;color:#565959;white-space:nowrap;">{{ format_date(c.date_expedition) if c.date_expedition else '—' }}</td>
+          <td style="font-size:11px;color:#565959;white-space:nowrap;">{{ format_date(c.date_recuperation) if c.date_recuperation else '—' }}</td>
+          <td>
+            <div class="actions-cell">
+              {% if c.statut == 'En attente' and c.type_flux == 'envoi_france' %}
+              <button class="btn btn-sm" style="background:#E8F4FD;border-color:#007185;color:#007185;" onclick="marquerParti({{ c.id }})">✈️ Parti</button>
+              {% endif %}
+              {% if c.statut == 'En attente' and c.type_flux == 'reception_france' %}
+              <button class="btn btn-success btn-sm" onclick="ouvrirModalRecup({{ c.id }}, '{{ c.destinataire_nom|replace("'","\\'")|e }}', {{ c.prix_final or 0 }})">🏠 Récup.</button>
+              {% endif %}
+
+              <!-- BOUTON PHOTOS (avec badge nb photos) -->
+              {% if c.type_flux == 'envoi_france' %}
+              <a href="/photos/{{ c.id }}" class="btn btn-sm" style="position:relative;background:{% if nb_photos > 0 %}#FFF3CD;border-color:#FF9900;color:#856404{% else %}#f7f8fa;border-color:#ADB1B8;color:#555{% endif %};" title="{{ nb_photos }} photo(s)">
+                📷{% if nb_photos > 0 %}<span style="position:absolute;top:-6px;right:-6px;background:#FF9900;color:#111;font-size:10px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;">{{ nb_photos }}</span>{% endif %}
+              </a>
+              {% endif %}
+
+              <a href="/recu-a5/{{ c.id }}" target="_blank" class="btn btn-secondary btn-sm">📄</a>
+              <a href="/historique/{{ c.id }}" class="btn btn-secondary btn-sm">📜</a>
+              <button class="btn btn-danger btn-sm" onclick="supprimerColis({{ c.id }})">🗑️</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">📦</div>
+    <h3>Aucun colis trouvé</h3>
+    <p>Il n'y a aucun colis pour ce filtre. <a href="/add">Ajouter un premier colis</a></p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- MODAL RÉCUPÉRATION -->
+<div class="modal-overlay" id="modal-recup">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">🏠 Confirmer la récupération</span>
+      <button class="modal-close" onclick="fermerModal('modal-recup')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom:16px;color:#565959;">Destinataire : <strong id="recup-dest"></strong></p>
+      <div class="form-group" style="margin-bottom:14px;">
+        <label class="form-label">Montant payé (€) <span class="required">*</span></label>
+        <input type="number" id="recup-montant" class="form-input" step="0.01" min="0">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nom du récupérateur <span class="required">*</span></label>
+        <input type="text" id="recup-nom" class="form-input" placeholder="Qui vient récupérer ?">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fermerModal('modal-recup')">Annuler</button>
+      <button class="btn btn-success" onclick="confirmerRecup()">✅ Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DÉPART -->
+<div class="modal-overlay" id="modal-depart">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">✈️ Confirmer le départ</span>
+      <button class="modal-close" onclick="fermerModal('modal-depart')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p>Êtes-vous sûr de vouloir marquer ce colis comme <strong>Parti</strong> vers la France ?</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fermerModal('modal-depart')">Annuler</button>
+      <button class="btn btn-primary" onclick="confirmerDepart()">✈️ Marquer Parti</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let colisIdActif = null;
+function ouvrirModalRecup(id, dest, prix) {
+  colisIdActif = id;
+  document.getElementById('recup-dest').textContent = dest;
+  document.getElementById('recup-montant').value = prix;
+  document.getElementById('recup-nom').value = '';
+  document.getElementById('modal-recup').classList.add('open');
+}
+function marquerParti(id) {
+  colisIdActif = id;
+  document.getElementById('modal-depart').classList.add('open');
+}
+function confirmerDepart() {
+  fetch(`/api/colis/${colisIdActif}`, {method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({statut:'Parti'})})
+    .then(() => location.reload());
+}
+function confirmerRecup() {
+  const montant = document.getElementById('recup-montant').value;
+  const nom = document.getElementById('recup-nom').value;
+  if (!montant || !nom) { alert('Veuillez remplir tous les champs.'); return; }
+  fetch(`/api/colis/${colisIdActif}/statut`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({montant_paye:montant,recuperateur_nom:nom})})
+    .then(() => location.reload());
+}
+function supprimerColis(id) {
+  if (!confirm('Supprimer ce colis définitivement ?')) return;
+  fetch(`/api/colis/${id}`, {method:'DELETE'}).then(() => location.reload());
+}
+function fermerModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+</script>
+{% endblock %}

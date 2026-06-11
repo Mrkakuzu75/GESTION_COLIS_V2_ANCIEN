@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Historique #{{ colis.id }} — ColisExpress{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="/">Accueil</a> ›
+  <a href="/list">Liste</a> ›
+  <span>Historique #{{ colis.id }}</span>
+</div>
+<h1 class="page-title">📜 Historique du colis {{ colis.numero_suivi or '#' ~ colis.id }}</h1>
+
+<div style="display:grid; grid-template-columns:1fr 360px; gap:20px; align-items:start;">
+
+  <div class="amz-card">
+    <div class="amz-card-header">Chronologie des actions</div>
+    <div class="amz-card-body">
+      {% if historique %}
+      <div class="timeline">
+        {% for h in historique %}
+        <div class="timeline-item">
+          <div>
+            <div class="timeline-dot"></div>
+            <div class="timeline-line"></div>
+          </div>
+          <div class="timeline-content">
+            <div class="timeline-action">
+              {% if h.action == 'Création' %}📦 Création du colis
+              {% elif h.action == 'Changement statut' %}🔄 Changement de statut
+              {% elif h.action == 'Récupération' %}✅ Récupération
+              {% elif h.action == 'Suppression' %}🗑️ Suppression
+              {% else %}{{ h.action }}{% endif %}
+            </div>
+            <div class="timeline-date">{{ format_date(h.date_action) }} — par {{ h.utilisateur }}</div>
+            {% if h.ancienne_valeur or h.nouvelle_valeur %}
+            <div class="timeline-change">
+              {% if h.ancienne_valeur %}<span class="old">{{ h.ancienne_valeur }}</span> → {% endif %}
+              {% if h.nouvelle_valeur %}<span class="new">{{ h.nouvelle_valeur }}</span>{% endif %}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state" style="padding:30px;">
+        <div class="empty-icon">📜</div>
+        <h3>Aucune action enregistrée</h3>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="amz-card">
+    <div class="amz-card-header">📦 Détails du colis</div>
+    <div class="amz-card-body">
+      <div class="info-row">
+        <div class="info-key">N° Suivi</div>
+        <div class="info-val tracking-num" style="font-size:14px;">{{ colis.numero_suivi or '—' }}</div>
+      </div>
+      <div class="info-row">
+        <div class="info-key">Type</div>
+        <div class="info-val">{% if colis.type_flux == 'envoi_france' %}<span class="badge badge-envoi">CI → FR</span>{% else %}<span class="badge badge-reception">FR → CI</span>{% endif %}</div>
+      </div>
+      <div class="info-row">
+        <div class="info-key">Statut actuel</div>
+        <div class="info-val">
+          {% if colis.statut == 'En attente' %}<span class="badge badge-attente">⏳ En attente</span>
+          {% elif colis.statut == 'Parti' %}<span class="badge badge-parti">✈️ Parti</span>
+          {% else %}<span class="badge badge-recupere">✅ Récupéré</span>{% endif %}
+        </div>
+      </div>
+      <div class="info-row">
+        <div class="info-key">Destinataire</div>
+        <div class="info-val">{{ colis.destinataire_nom or '—' }}</div>
+      </div>
+      <div class="info-row">
+        <div class="info-key">Téléphone</div>
+        <div class="info-val">{{ colis.destinataire_telephone or '—' }}</div>
+      </div>
+      <div class="info-row">
+        <div class="info-key">Prix</div>
+        <div class="info-val" style="color:#B12704;">{{ colis.prix_final|int if colis.prix_final else '—' }}€</div>
+      </div>
+      <div style="margin-top:16px; display:flex; flex-direction:column; gap:8px;">
+        <a href="/recu-a5/{{ colis.id }}" target="_blank" class="btn btn-secondary btn-sm" style="justify-content:center;">📄 Voir le reçu</a>
+        <a href="/list" class="btn btn-secondary btn-sm" style="justify-content:center;">← Retour à la liste</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
