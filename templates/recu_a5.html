@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Reçu {{ colis.numero_suivi or colis.id }}</title>
+<style>
+@page { size: A5; margin: 0; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Helvetica Neue', Arial, sans-serif;
+  background: #fff;
+  width: 148mm;
+  min-height: 210mm;
+  padding: 8mm 10mm;
+  font-size: 11px;
+  color: #0F1111;
+}
+
+/* HEADER */
+.recu-header {
+  background: #131921;
+  color: #fff;
+  padding: 10px 14px;
+  border-radius: 6px 6px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0;
+}
+.recu-logo { font-size: 20px; font-weight: 900; color: #FF9900; letter-spacing: -0.5px; }
+.recu-logo span { color: #fff; font-size: 11px; display: block; font-weight: 400; letter-spacing: 1px; }
+.recu-tracking { text-align: right; }
+.recu-tracking .num { font-family: 'Courier New', monospace; font-size: 13px; font-weight: 700; color: #FF9900; }
+.recu-tracking .date { font-size: 10px; color: #ccc; margin-top: 2px; }
+
+/* BANNER */
+.recu-banner {
+  background: #FF9900;
+  color: #131921;
+  text-align: center;
+  padding: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+/* TYPE BADGE */
+.type-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.type-envoi { background: #E2EFFF; color: #0055A4; border: 1px solid #BDD5FE; }
+.type-recep { background: #F0E6FF; color: #6B21A8; border: 1px solid #DDD6FE; }
+
+.statut-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.s-attente { background: #FFF3CD; color: #856404; }
+.s-parti { background: #CCE5FF; color: #004085; }
+.s-recupere { background: #D4EDDA; color: #155724; }
+
+/* SECTIONS */
+.section { margin-bottom: 10px; }
+.section-title {
+  font-size: 9px;
+  font-weight: 700;
+  color: #565959;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 1px solid #E3E6E6;
+  padding-bottom: 4px;
+  margin-bottom: 8px;
+}
+.info-line {
+  display: flex;
+  justify-content: space-between;
+  padding: 3px 0;
+  border-bottom: 1px dotted #F0F0F0;
+}
+.info-line:last-child { border-bottom: none; }
+.info-label { color: #565959; }
+.info-value { font-weight: 600; color: #0F1111; text-align: right; }
+.info-value.big { font-size: 16px; color: #B12704; font-weight: 800; }
+.info-value.big-fcfa { font-size: 11px; color: #007600; }
+
+/* TWO COL */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* QR */
+.qr-section {
+  text-align: center;
+  padding: 10px 0 6px;
+  border-top: 2px dashed #E3E6E6;
+  margin-top: 10px;
+}
+.qr-section img { width: 72px; height: 72px; }
+.qr-section p { font-size: 9px; color: #565959; margin-top: 4px; }
+
+/* PRINT BTN */
+.print-btn {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  background: #FF9900;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+.print-btn:hover { background: #FA8900; }
+@media print {
+  .print-btn { display: none; }
+  body { width: 148mm; }
+}
+.footer-note {
+  text-align: center;
+  font-size: 9px;
+  color: #888;
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid #E3E6E6;
+}
+</style>
+</head>
+<body>
+
+<button class="print-btn" onclick="window.print()">🖨️ Imprimer</button>
+
+<div class="recu-header">
+  <div>
+    <div class="recu-logo">📦 ColisExpress <span>CI ↔ FRANCE</span></div>
+  </div>
+  <div class="recu-tracking">
+    <div class="num">{{ colis.numero_suivi or 'N/A' }}</div>
+    <div class="date">{% if colis.date_creation %}{{ colis.date_creation | string | replace('T',' ')}}{% endif %}</div>
+  </div>
+</div>
+
+<div class="recu-banner">REÇU DE COLIS</div>
+
+<!-- STATUS ROW -->
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:6px;">
+  {% if colis.type_flux == 'envoi_france' %}
+  <span class="type-badge type-envoi">✈️ ENVOI — Côte d'Ivoire → France</span>
+  {% else %}
+  <span class="type-badge type-recep">📥 RÉCEPTION — France → Côte d'Ivoire</span>
+  {% endif %}
+  {% if colis.statut == 'En attente' %}
+  <span class="statut-badge s-attente">⏳ En attente</span>
+  {% elif colis.statut == 'Parti' %}
+  <span class="statut-badge s-parti">✈️ Parti</span>
+  {% else %}
+  <span class="statut-badge s-recupere">✅ Récupéré</span>
+  {% endif %}
+</div>
+
+<!-- EXPEDITEUR + DESTINATAIRE -->
+<div class="two-col">
+  <div class="section">
+    <div class="section-title">📤 Expéditeur</div>
+    <div class="info-line">
+      <span class="info-label">Nom</span>
+      <span class="info-value">{{ colis.deposant_nom or colis.livreur_nom or '—' }}</span>
+    </div>
+    <div class="info-line">
+      <span class="info-label">Tél</span>
+      <span class="info-value">{{ colis.deposant_telephone or colis.livreur_telephone or '—' }}</span>
+    </div>
+    {% if colis.est_livreur %}
+    <div class="info-line">
+      <span class="info-label">Mode</span>
+      <span class="info-value">Transporteur 🚚</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="section">
+    <div class="section-title">📬 Destinataire</div>
+    <div class="info-line">
+      <span class="info-label">Nom</span>
+      <span class="info-value">{{ colis.destinataire_nom or '—' }}</span>
+    </div>
+    <div class="info-line">
+      <span class="info-label">Tél</span>
+      <span class="info-value">{{ colis.destinataire_telephone or '—' }}</span>
+    </div>
+  </div>
+</div>
+
+<!-- DETAILS COLIS -->
+<div class="section">
+  <div class="section-title">📦 Détails du colis</div>
+  <div class="two-col">
+    <div>
+      <div class="info-line">
+        <span class="info-label">Type de colis</span>
+        <span class="info-value">{{ colis.type_colis or '—' }}{% if colis.type_colis_autre %} ({{ colis.type_colis_autre }}){% endif %}</span>
+      </div>
+      <div class="info-line">
+        <span class="info-label">Nombre</span>
+        <span class="info-value">{{ colis.nombre_colis or 1 }}</span>
+      </div>
+      {% if colis.poids %}
+      <div class="info-line">
+        <span class="info-label">Poids réel</span>
+        <span class="info-value">{{ colis.poids_arrondi | int }} kg</span>
+      </div>
+      <div class="info-line">
+        <span class="info-label">Poids facturé</span>
+        <span class="info-value">{{ colis.poids_arrondi | int }} kg</span>
+      </div>
+      {% endif %}
+    </div>
+    <div>
+      <div class="info-line">
+        <span class="info-label">Paiement</span>
+        <span class="info-value">{{ colis.moyen_payement or '—' }}</span>
+      </div>
+      {% if colis.payement_chez %}
+      <div class="info-line">
+        <span class="info-label">Payé chez</span>
+        <span class="info-value">{{ colis.payement_chez }}</span>
+      </div>
+      {% endif %}
+      {% if colis.est_negocie %}
+      <div class="info-line">
+        <span class="info-label">Tarif</span>
+        <span class="info-value">Négocié</span>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- PRIX -->
+<div class="section" style="background:#FFF8EB; border:1px solid #FFE083; border-radius:4px; padding:10px;">
+  <div class="info-line" style="border:none;">
+    <span class="info-label" style="font-size:12px; font-weight:700;">MONTANT TOTAL</span>
+    <div style="text-align:right;">
+      <div class="info-value big">{{ colis.prix_final | int if colis.prix_final else '—' }} €</div>
+      <div class="info-value big-fcfa">≈ {{ (colis.prix_final * 655.96) | int if colis.prix_final else '—' }} FCFA</div>
+    </div>
+  </div>
+</div>
+
+{% if colis.notes %}
+<div class="section" style="margin-top:8px;">
+  <div class="section-title">📝 Notes</div>
+  <div style="color:#565959; font-size:11px; font-style:italic;">{{ colis.notes }}</div>
+</div>
+{% endif %}
+
+{% if colis.recuperateur_nom %}
+<div class="section" style="margin-top:8px; background:#EAF5EA; border:1px solid #ABD5AB; border-radius:4px; padding:8px;">
+  <div class="section-title" style="color:#007600;">✅ RÉCUPÉRÉ PAR</div>
+  <div class="info-line">
+    <span class="info-label">Récupérateur</span>
+    <span class="info-value">{{ colis.recuperateur_nom }}</span>
+  </div>
+  {% if colis.date_recuperation %}
+  <div class="info-line">
+    <span class="info-label">Le</span>
+    <span class="info-value">{{ colis.date_recuperation | string | replace('T',' ')  }}</span>
+  </div>
+  {% endif %}
+  {% if colis.montant_paye %}
+  <div class="info-line">
+    <span class="info-label">Montant payé</span>
+    <span class="info-value" style="color:#007600; font-weight:800;">{{ colis.montant_paye | int }}€</span>
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- QR CODE -->
+<div class="qr-section">
+  {% if qr_b64 %}
+  <img src="data:image/png;base64,{{ qr_b64 }}" alt="QR Code">
+  {% else %}
+  <div style="width:72px; height:72px; background:#F0F0F0; display:inline-flex; align-items:center; justify-content:center; font-size:9px; color:#888; border:1px solid #DDD; border-radius:3px;">QR</div>
+  {% endif %}
+  <p>{{ colis.numero_suivi or 'Scan pour suivi' }}</p>
+</div>
+
+<div class="footer-note">
+  Document informatisé  Non contractuel
+</div>
+
+</body>
+</html>

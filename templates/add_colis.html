@@ -1,0 +1,372 @@
+{% extends "base.html" %}
+{% block title %}Nouveau colis — ColisExpress{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="/">Accueil</a> › <span>Nouveau colis</span>
+</div>
+<h1 class="page-title">➕ Enregistrer un colis</h1>
+
+<form method="post" enctype="multipart/form-data" id="colisForm">
+<div style="display:grid; grid-template-columns:1fr 380px; gap:20px; align-items:start;">
+
+  <!-- LEFT -->
+  <div>
+
+    <!-- TYPE EXPÉDITION -->
+    <div class="amz-card" style="margin-bottom:16px;">
+      <div class="amz-card-header">📦 Type d'expédition</div>
+      <div class="amz-card-body">
+        <div style="display:flex; gap:16px; flex-wrap:wrap;">
+          <label class="type-option">
+            <input type="radio" name="type_flux" value="envoi_france" checked onchange="updateFlux()">
+            <div class="type-card active" id="card-envoi">
+              <div style="font-size:28px;">✈️</div>
+              <div style="font-size:15px;font-weight:700;margin-top:6px;">ENVOI</div>
+              <div style="font-size:12px;color:#565959;">Côte d'Ivoire → France</div>
+            </div>
+          </label>
+          <label class="type-option">
+            <input type="radio" name="type_flux" value="reception_france" onchange="updateFlux()">
+            <div class="type-card" id="card-reception">
+              <div style="font-size:28px;">📥</div>
+              <div style="font-size:15px;font-weight:700;margin-top:6px;">RÉCEPTION</div>
+              <div style="font-size:12px;color:#565959;">France → Côte d'Ivoire</div>
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ENVOI SECTION -->
+    <div id="section-envoi">
+
+      <!-- MODE LIVREUR — par défaut coché -->
+      <div class="amz-card" style="margin-bottom:16px;">
+        <div class="amz-card-header">👤 Mode d'enregistrement</div>
+        <div class="amz-card-body">
+          <div style="display:flex; gap:20px; flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 16px;border:2px solid;border-radius:6px;transition:all .15s;" id="lbl-livreur">
+              <input type="radio" name="est_livreur" value="1" id="rb-livreur" checked onchange="updateModeEnvoi()" style="accent-color:#FF9900;">
+              <span>🚚 <strong>Livreur / Transporteur</strong><br><small style="color:#565959;font-weight:400;">Le colis arrive via un livreur</small></span>
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 16px;border:2px solid;border-radius:6px;transition:all .15s;" id="lbl-deposant">
+              <input type="radio" name="est_livreur" value="0" id="rb-deposant" onchange="updateModeEnvoi()" style="accent-color:#FF9900;">
+              <span>🙋 <strong>Déposant direct</strong><br><small style="color:#565959;font-weight:400;">Le client apporte lui-même</small></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIVREUR -->
+      <div class="amz-card" style="margin-bottom:16px;" id="section-livreur">
+        <div class="amz-card-header">🚚 Informations livreur <span style="font-size:12px;font-weight:400;color:#565959;">(optionnel)</span></div>
+        <div class="amz-card-body">
+          <div class="form-row cols-2">
+            <div class="form-group">
+              <label class="form-label">Nom du livreur</label>
+              <input type="text" name="livreur_nom" class="form-input" placeholder="Nom (optionnel)" list="clients-list">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Téléphone</label>
+              <input type="tel" name="livreur_telephone" class="form-input" placeholder="Téléphone (optionnel)">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DÉPOSANT -->
+      <div class="amz-card" style="margin-bottom:16px; display:none;" id="section-deposant">
+        <div class="amz-card-header">📤 Expéditeur (Déposant)</div>
+        <div class="amz-card-body">
+          <div class="form-row cols-2">
+            <div class="form-group">
+              <label class="form-label">Nom complet <span class="required">*</span></label>
+              <input type="text" name="deposant_nom" class="form-input" placeholder="Ex: KOUASSI YAO" list="clients-list">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Téléphone <span class="required">*</span></label>
+              <input type="tel" name="deposant_telephone" class="form-input" placeholder="Ex: 0700000000">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RÉCEPTION -->
+    <div id="section-reception" style="display:none;">
+      <div class="amz-card" style="margin-bottom:16px;">
+        <div class="amz-card-header">📤 Expéditeur France <span style="font-size:12px;font-weight:400;color:#565959;">(optionnel)</span></div>
+        <div class="amz-card-body">
+          <div class="form-row cols-2">
+            <div class="form-group">
+              <label class="form-label">Nom</label>
+              <input type="text" name="deposant_nom" class="form-input" placeholder="Nom de l'expéditeur">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Téléphone</label>
+              <input type="tel" name="deposant_telephone" class="form-input" placeholder="Numéro France">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DESTINATAIRE -->
+    <div class="amz-card" style="margin-bottom:16px;">
+      <div class="amz-card-header">📬 Destinataire <span class="required">*</span></div>
+      <div class="amz-card-body">
+        <div class="form-row cols-2">
+          <div class="form-group">
+            <label class="form-label">Nom complet <span class="required">*</span></label>
+            <input type="text" name="destinataire_nom" class="form-input" required placeholder="Ex: KONAN JEAN" list="clients-list">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Téléphone <span class="required">*</span></label>
+            <input type="tel" name="destinataire_telephone" class="form-input" required placeholder="Ex: 0500000000">
+          </div>
+        </div>
+        <datalist id="clients-list">
+          {% for c in clients %}<option value="{{ c.nom }}">{{ c.telephone }}</option>{% endfor %}
+        </datalist>
+      </div>
+    </div>
+
+    <!-- DÉTAILS -->
+    <div class="amz-card" style="margin-bottom:16px;">
+      <div class="amz-card-header">📦 Détails du colis</div>
+      <div class="amz-card-body">
+        <div class="form-row cols-3">
+          <div class="form-group">
+            <label class="form-label">Type de colis <span class="required">*</span></label>
+            <select name="type_colis" class="form-select" required onchange="updateTypeColis(this.value)">
+              <option value="">— Choisir —</option>
+              {% for t in ['Vêtements','Électronique','Nourriture','Document','Perruque','Maillot','Sac','Autre'] %}
+              <option value="{{ t }}">{{ t }}</option>{% endfor %}
+            </select>
+          </div>
+          <div class="form-group" id="group-autre" style="display:none;">
+            <label class="form-label">Précision</label>
+            <input type="text" name="type_colis_autre" class="form-input" placeholder="Précisez…">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nombre de colis</label>
+            <input type="number" name="nombre_colis" class="form-input" value="1" min="1">
+          </div>
+        </div>
+
+        <div class="form-row cols-2" id="group-poids-row">
+          <div class="form-group">
+            <label class="form-label">Poids (kg) <span class="required">*</span></label>
+            <input type="number" name="poids" id="poids" class="form-input" step="0.1" min="0" placeholder="Ex: 2.5" oninput="calcPrix()">
+            <span class="form-hint">Arrondi au kg supérieur</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Prix calculé</label>
+            <div id="prix-affiche" style="padding:8px 10px;background:#F0F2F2;border:1px solid #D5D9D9;border-radius:4px;font-size:20px;font-weight:800;color:#007185;">— €</div>
+          </div>
+        </div>
+
+        <div style="border-top:1px solid #E3E6E6;padding-top:14px;margin-top:4px;">
+          <div class="form-check">
+            <input type="checkbox" name="est_negocie" id="est_negocie" onchange="toggleNegocie()">
+            <label for="est_negocie" style="font-size:13px;font-weight:600;">💬 Prix négocié</label>
+          </div>
+          <div id="group-negocie" style="display:none;margin-top:10px;">
+            <div class="form-group" style="max-width:220px;">
+              <label class="form-label">Prix personnalisé (€)</label>
+              <input type="number" name="prix_negocie" id="prix_negocie" class="form-input" step="0.01" min="0" placeholder="Ex: 25" oninput="calcPrix()">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="amz-card" style="margin-bottom:16px;">
+      <div class="amz-card-header">📝 Notes</div>
+      <div class="amz-card-body">
+        <textarea name="notes" class="form-textarea" placeholder="Fragilité, instructions spéciales…" rows="3"></textarea>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div>
+
+    <!-- PAIEMENT -->
+    <div class="amz-card" style="margin-bottom:16px;">
+      <div class="amz-card-header">💳 Paiement</div>
+      <div class="amz-card-body">
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label">Moyen de paiement</label>
+          <select name="moyen_payement" class="form-select" onchange="updateMoyenPay(this.value)">
+            {% for mp in ['Espèces','Wave','Orange Money','Ria Money Gram','Paiement à l\'arrivée'] %}
+            <option value="{{ mp }}">{{ mp }}</option>{% endfor %}
+          </select>
+        </div>
+        <div id="group-paye-chez" style="display:none;">
+          <div class="form-group">
+            <label class="form-label">Payé chez <span class="required">*</span></label>
+            <select name="payement_chez" class="form-select">
+              <option value="Chez moi">Chez moi</option>
+              <option value="Chez le patron">Chez le patron</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHOTOS MULTIPLES -->
+    <div class="amz-card" style="margin-bottom:16px;">
+      <div class="amz-card-header">📷 Photos du colis <span style="font-size:12px;font-weight:400;color:#565959;">(optionnel — plusieurs)</span></div>
+      <div class="amz-card-body">
+        <div class="form-group">
+          <input type="file" name="photos" id="photos-input" class="form-input" accept="image/*" multiple onchange="previewPhotos(this)" style="padding:6px;">
+          <div class="form-hint">PNG, JPG, GIF, WEBP — sélectionnez autant de photos que vous voulez</div>
+        </div>
+        <div id="photos-preview" style="display:none; margin-top:12px;">
+          <div style="font-size:12px;color:#565959;margin-bottom:6px;" id="photos-count"></div>
+          <div id="photos-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECAP -->
+    <div class="amz-card" style="border:2px solid #FF9900;">
+      <div class="amz-card-header" style="background:#FFF8EB;border-bottom-color:#FF9900;">📋 Récapitulatif</div>
+      <div class="amz-card-body">
+        <div class="info-row">
+          <div class="info-key">Type</div>
+          <div class="info-val" id="recap-type">Envoi CI → FR</div>
+        </div>
+        <div class="info-row">
+          <div class="info-key">Mode</div>
+          <div class="info-val" id="recap-mode">🚚 Livreur</div>
+        </div>
+        <div class="info-row">
+          <div class="info-key">Poids facturé</div>
+          <div class="info-val" id="recap-poids">— kg</div>
+        </div>
+        <div class="info-row">
+          <div class="info-key">Prix total</div>
+          <div class="info-val" id="recap-prix" style="color:#B12704;font-size:20px;">— €</div>
+        </div>
+        <div class="info-row">
+          <div class="info-key">En FCFA</div>
+          <div class="info-val" id="recap-fcfa" style="color:#007600;">— FCFA</div>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;font-size:15px;padding:12px;margin-top:14px;">
+          ✅ Enregistrer le colis
+        </button>
+        <a href="/" class="btn btn-secondary" style="width:100%;justify-content:center;margin-top:8px;">Annuler</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<style>
+.type-option input[type=radio] { display:none; }
+.type-card { border:2px solid #D5D9D9;border-radius:8px;padding:20px 30px;text-align:center;cursor:pointer;transition:all .15s;background:#fff;min-width:160px; }
+.type-card:hover { border-color:#FF9900; }
+.type-card.active { border-color:#FF9900;background:#FFF8EB;box-shadow:0 0 0 2px rgba(255,153,0,.2); }
+#lbl-livreur { border-color:#FF9900; background:#FFF8EB; }
+#lbl-deposant { border-color:#D5D9D9; }
+.photo-thumb { width:100%;aspect-ratio:1;object-fit:cover;border-radius:4px;border:1px solid #D5D9D9; }
+</style>
+<script>
+const TAUX = 655.96;
+const TYPES_SANS_POIDS = ['Document','Perruque','Maillot'];
+
+function updateFlux() {
+  const v = document.querySelector('input[name=type_flux]:checked').value;
+  const isEnvoi = v === 'envoi_france';
+  document.getElementById('section-envoi').style.display = isEnvoi ? '' : 'none';
+  document.getElementById('section-reception').style.display = isEnvoi ? 'none' : '';
+  document.getElementById('card-envoi').classList.toggle('active', isEnvoi);
+  document.getElementById('card-reception').classList.toggle('active', !isEnvoi);
+  document.getElementById('recap-type').textContent = isEnvoi ? 'Envoi CI → FR' : 'Réception FR → CI';
+}
+
+function updateModeEnvoi() {
+  const isLivreur = document.getElementById('rb-livreur').checked;
+  document.getElementById('section-livreur').style.display = isLivreur ? '' : 'none';
+  document.getElementById('section-deposant').style.display = isLivreur ? 'none' : '';
+  document.getElementById('lbl-livreur').style.borderColor = isLivreur ? '#FF9900' : '#D5D9D9';
+  document.getElementById('lbl-livreur').style.background = isLivreur ? '#FFF8EB' : '#fff';
+  document.getElementById('lbl-deposant').style.borderColor = isLivreur ? '#D5D9D9' : '#FF9900';
+  document.getElementById('lbl-deposant').style.background = isLivreur ? '#fff' : '#FFF8EB';
+  document.getElementById('recap-mode').textContent = isLivreur ? '🚚 Livreur' : '🙋 Déposant';
+}
+
+function updateTypeColis(v) {
+  document.getElementById('group-autre').style.display = v === 'Autre' ? '' : 'none';
+  const sans = TYPES_SANS_POIDS.includes(v);
+  document.getElementById('group-poids-row').style.display = sans ? 'none' : '';
+  if (sans) {
+    document.getElementById('est_negocie').checked = true;
+    document.getElementById('group-negocie').style.display = '';
+    document.getElementById('recap-poids').textContent = '— (sans poids)';
+  } else { calcPrix(); }
+}
+
+function toggleNegocie() {
+  const checked = document.getElementById('est_negocie').checked;
+  document.getElementById('group-negocie').style.display = checked ? '' : 'none';
+  calcPrix();
+}
+
+function calcPrix() {
+  const poids = parseFloat(document.getElementById('poids').value) || 0;
+  const negocie = document.getElementById('est_negocie').checked;
+  const poidsArrondi = Math.ceil(poids);
+  const prix = negocie
+    ? (parseFloat(document.getElementById('prix_negocie')?.value) || 0)
+    : poidsArrondi * 10;
+  document.getElementById('prix-affiche').textContent = (poids > 0 || negocie) ? prix + ' €' : '— €';
+  document.getElementById('recap-poids').textContent = poidsArrondi > 0 ? poidsArrondi + ' kg' : '— kg';
+  document.getElementById('recap-prix').textContent = prix > 0 ? prix + ' €' : '— €';
+  document.getElementById('recap-fcfa').textContent = prix > 0 ? Math.round(prix * TAUX).toLocaleString('fr-FR') + ' FCFA' : '— FCFA';
+}
+
+function updateMoyenPay(v) {
+  document.getElementById('group-paye-chez').style.display = ['Wave','Orange Money'].includes(v) ? '' : 'none';
+}
+
+function previewPhotos(input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  const grid = document.getElementById('photos-grid');
+  const preview = document.getElementById('photos-preview');
+  const count = document.getElementById('photos-count');
+  grid.innerHTML = '';
+  count.textContent = files.length + ' photo' + (files.length > 1 ? 's' : '') + ' sélectionnée' + (files.length > 1 ? 's' : '');
+  preview.style.display = '';
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.className = 'photo-thumb';
+      img.title = file.name;
+      grid.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  updateModeEnvoi();
+  const params = new URLSearchParams(location.search);
+  if (params.get('type') === 'reception') {
+    document.querySelector('input[value=reception_france]').checked = true;
+    updateFlux();
+  }
+});
+</script>
+{% endblock %}

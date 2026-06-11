@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Suivi client — ColisExpress{% endblock %}
+
+{% block content %}
+<div class="breadcrumb"><a href="/">Accueil</a> › <span>Suivi client</span></div>
+<h1 class="page-title">🔍 Suivi de votre colis</h1>
+
+<div class="amz-card" style="margin-bottom:20px;">
+  <div class="amz-card-header">Rechercher un colis</div>
+  <div class="amz-card-body">
+    <form method="get" style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+      <div class="form-group" style="flex:1; min-width:240px;">
+        <label class="form-label">Numéro de téléphone ou nom du destinataire</label>
+        <input type="text" name="q" class="form-input" value="{{ query }}" placeholder="Ex: 0700000000 ou KOUASSI" autofocus style="font-size:15px; padding:12px;">
+      </div>
+      <button type="submit" class="btn btn-primary" style="padding:12px 24px; font-size:14px;">🔍 Rechercher</button>
+    </form>
+  </div>
+</div>
+
+{% if query %}
+  {% if resultats %}
+  <div style="margin-bottom:12px; font-size:14px; color:#565959;">
+    <strong>{{ resultats|length }}</strong> colis trouvé{{ 's' if resultats|length > 1 else '' }} pour « <strong>{{ query }}</strong> »
+  </div>
+  {% for c in resultats %}
+  <div class="amz-card" style="margin-bottom:14px; border-left:4px solid {% if c.statut == 'Récupéré' %}#007600{% elif c.statut == 'Parti' %}#007185{% else %}#FF9900{% endif %};">
+    <div class="amz-card-header">
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <span class="tracking-num" style="font-size:15px;">{{ c.numero_suivi or '#' ~ c.id }}</span>
+        {% if c.type_flux == 'envoi_france' %}<span class="badge badge-envoi">CI → FR</span>{% else %}<span class="badge badge-reception">FR → CI</span>{% endif %}
+        {% if c.statut == 'En attente' %}<span class="badge badge-attente">⏳ En attente</span>
+        {% elif c.statut == 'Parti' %}<span class="badge badge-parti">✈️ En route</span>
+        {% else %}<span class="badge badge-recupere">✅ Récupéré</span>{% endif %}
+      </div>
+      <a href="/recu-a5/{{ c.id }}" target="_blank" class="btn btn-secondary btn-sm">📄 Reçu</a>
+    </div>
+    <div class="amz-card-body">
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px;">
+        <div>
+          <div class="info-key">📤 Expéditeur</div>
+          <div class="info-val">{{ c.deposant_nom or c.livreur_nom or '—' }}</div>
+          <div style="font-size:12px; color:#565959;">{{ c.deposant_telephone or c.livreur_telephone or '' }}</div>
+        </div>
+        <div>
+          <div class="info-key">📬 Destinataire</div>
+          <div class="info-val">{{ c.destinataire_nom or '—' }}</div>
+          <div style="font-size:12px; color:#565959;">{{ c.destinataire_telephone or '' }}</div>
+        </div>
+        <div>
+          <div class="info-key">📦 Type / Poids</div>
+          <div class="info-val">{{ c.type_colis or '—' }}{% if c.poids %} — {{ c.poids_arrondi|int }}kg{% endif %}</div>
+        </div>
+        <div>
+          <div class="info-key">💰 Prix</div>
+          <div class="info-val" style="color:#B12704;">{{ c.prix_final|int if c.prix_final else '—' }}€</div>
+        </div>
+        <div>
+          <div class="info-key">📅 Enregistré le</div>
+          <div class="info-val" style="font-size:13px;">{{ format_date(c.date_creation) }}</div>
+        </div>
+        {% if c.date_expedition %}
+        <div>
+          <div class="info-key">✈️ Parti le</div>
+          <div class="info-val" style="font-size:13px;">{{ format_date(c.date_expedition) }}</div>
+        </div>
+        {% endif %}
+        {% if c.date_recuperation %}
+        <div>
+          <div class="info-key">✅ Récupéré le</div>
+          <div class="info-val" style="font-size:13px; color:#007600;">{{ format_date(c.date_recuperation) }}</div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">🔍</div>
+    <h3>Aucun colis trouvé</h3>
+    <p>Aucun colis ne correspond à « <strong>{{ query }}</strong> »</p>
+  </div>
+  {% endif %}
+{% else %}
+<div class="amz-card">
+  <div class="amz-card-body">
+    <div class="empty-state" style="padding:40px 20px;">
+      <div class="empty-icon">📦</div>
+      <h3>Entrez votre numéro de téléphone</h3>
+      <p>Saisissez votre numéro ou votre nom pour retrouver vos colis.</p>
+    </div>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

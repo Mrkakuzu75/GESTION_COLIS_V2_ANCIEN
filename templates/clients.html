@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Carnet clients — ColisExpress{% endblock %}
+
+{% block content %}
+<div class="breadcrumb"><a href="/">Accueil</a> › <span>Carnet de clients</span></div>
+
+<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+  <h1 class="page-title" style="margin-bottom:0; border:none; padding:0;">👥 Carnet de clients</h1>
+  <button class="btn btn-primary" onclick="document.getElementById('modal-add').classList.add('open')">➕ Nouveau client</button>
+</div>
+
+<!-- SEARCH -->
+<form method="get" style="margin-bottom:16px;">
+  <div class="search-box" style="max-width:400px;">
+    <input type="text" name="q" value="{{ query }}" placeholder="Rechercher par nom ou téléphone…">
+    <button type="submit">🔍</button>
+  </div>
+</form>
+
+<div class="amz-card">
+  {% if clients %}
+  <div class="amz-table-wrap">
+    <table class="amz-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nom</th>
+          <th>Téléphone</th>
+          <th>Adresse</th>
+          <th>Observations</th>
+          <th>Créé le</th>
+          <th>Dernière activité</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in clients %}
+        <tr>
+          <td style="color:#565959;">#{{ c.id }}</td>
+          <td><strong>{{ c.nom }}</strong></td>
+          <td>{{ c.telephone }}</td>
+          <td style="color:#565959; font-size:12px;">{{ c.adresse or '—' }}</td>
+          <td style="color:#565959; font-size:12px;">{{ c.observations or '—' }}</td>
+          <td style="font-size:12px; color:#565959;">{{ format_date(c.date_creation) }}</td>
+          <td style="font-size:12px; color:#565959;">{{ format_date(c.date_derniere_activite) if c.date_derniere_activite else '—' }}</td>
+          <td>
+            <div class="actions-cell">
+              <button class="btn btn-secondary btn-sm" onclick="modifierClient({{ c.id }}, '{{ c.nom|replace("'","\\'")|e }}', '{{ c.telephone }}', '{{ (c.adresse or '')|replace("'","\\'")|e }}', '{{ (c.observations or '')|replace("'","\\'")|e }}')">✏️ Modifier</button>
+              <button class="btn btn-danger btn-sm" onclick="supprimerClient({{ c.id }})">🗑️</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">👥</div>
+    <h3>Aucun client enregistré</h3>
+    <p>Commencez par ajouter votre premier client.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- MODAL AJOUT -->
+<div class="modal-overlay" id="modal-add">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-add-title">➕ Nouveau client</span>
+      <button class="modal-close" onclick="fermer('modal-add')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-id">
+      <div class="form-row cols-2" style="margin-bottom:14px;">
+        <div class="form-group">
+          <label class="form-label">Nom <span class="required">*</span></label>
+          <input type="text" id="c-nom" class="form-input" placeholder="Nom complet">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Téléphone <span class="required">*</span></label>
+          <input type="tel" id="c-tel" class="form-input" placeholder="0700000000">
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:14px;">
+        <label class="form-label">Adresse</label>
+        <input type="text" id="c-adresse" class="form-input" placeholder="Adresse">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observations</label>
+        <textarea id="c-obs" class="form-textarea" rows="2" placeholder="Notes, préférences…"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fermer('modal-add')">Annuler</button>
+      <button class="btn btn-primary" onclick="sauverClient()">✅ Sauvegarder</button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function fermer(id) { document.getElementById(id).classList.remove('open'); }
+
+function modifierClient(id, nom, tel, adresse, obs) {
+  document.getElementById('edit-id').value = id;
+  document.getElementById('c-nom').value = nom;
+  document.getElementById('c-tel').value = tel;
+  document.getElementById('c-adresse').value = adresse;
+  document.getElementById('c-obs').value = obs;
+  document.getElementById('modal-add-title').textContent = '✏️ Modifier le client';
+  document.getElementById('modal-add').classList.add('open');
+}
+
+function sauverClient() {
+  const id = document.getElementById('edit-id').value;
+  const data = {
+    nom: document.getElementById('c-nom').value,
+    telephone: document.getElementById('c-tel').value,
+    adresse: document.getElementById('c-adresse').value,
+    observations: document.getElementById('c-obs').value
+  };
+  if (!data.nom || !data.telephone) { alert('Nom et téléphone requis.'); return; }
+
+  const url = id ? `/api/clients/${id}` : '/api/clients';
+  const method = id ? 'PUT' : 'POST';
+  fetch(url, { method, headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) })
+    .then(r => r.json())
+    .then(d => {
+      if (d.success || !d.error) location.reload();
+      else alert('Erreur : ' + d.error);
+    });
+}
+
+function supprimerClient(id) {
+  if (!confirm('Supprimer ce client ?')) return;
+  fetch(`/api/clients/${id}`, {method:'DELETE'}).then(() => location.reload());
+}
+
+document.getElementById('modal-add').addEventListener('click', e => {
+  if (e.target.id === 'modal-add') fermer('modal-add');
+});
+</script>
+{% endblock %}

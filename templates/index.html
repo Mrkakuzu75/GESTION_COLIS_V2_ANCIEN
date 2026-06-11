@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}ColisExpress — Accueil{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <span>📦 ColisExpress</span>
+  <span>›</span>
+  <span>Tableau de bord</span>
+</div>
+
+<!-- STATS + MONTH PICKER -->
+<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+  <h1 class="page-title" style="margin-bottom:0; border:none; padding:0;">Tableau de bord</h1>
+  <form method="get" style="display:flex; align-items:center; gap:8px;">
+    <label style="font-size:13px; font-weight:600; color:#565959;">📅 Période :</label>
+    <select name="mois" class="form-select" style="width:auto;" onchange="this.form.submit()">
+      {% for m in mois_dispo %}
+      <option value="{{ m }}" {% if m == mois %}selected{% endif %}>{{ m }}</option>
+      {% endfor %}
+      {% if not mois_dispo %}
+      <option value="{{ mois }}" selected>{{ mois }}</option>
+      {% endif %}
+    </select>
+  </form>
+</div>
+
+<div class="stats-grid">
+  <div class="stat-card blue">
+    <div class="stat-label">📦 Total colis</div>
+    <div class="stat-value">{{ total }}</div>
+    <div class="stat-sub">Tous types confondus</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">💰 CA du mois</div>
+    <div class="stat-value">{{ "%.0f"|format(ca_mois) }}€</div>
+    <div class="stat-sub">≈ {{ "%.0f"|format(ca_mois * taux) }} FCFA</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-label">⏳ En attente</div>
+    <div class="stat-value">{{ en_attente }}</div>
+    <div class="stat-sub">Colis non récupérés</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-label">✈️ Envois du mois</div>
+    <div class="stat-value">{{ envois_mois }}</div>
+    <div class="stat-sub">CI → France</div>
+  </div>
+</div>
+
+<!-- QUICK ACTIONS -->
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:20px;">
+  <div class="amz-card" style="border-left:4px solid #FF9900;">
+    <div class="amz-card-header">✈️ Envoi CI → France</div>
+    <div class="amz-card-body">
+      <p style="color:#565959; font-size:13px; margin-bottom:16px;">Enregistrez un nouveau colis à expédier vers la France depuis la Côte d'Ivoire.</p>
+      <a href="/add?type=envoi" class="btn btn-primary" style="width:100%; justify-content:center; font-size:14px; padding:10px;">
+        ➕ Créer un envoi
+      </a>
+    </div>
+  </div>
+  <div class="amz-card" style="border-left:4px solid #007185;">
+    <div class="amz-card-header">📥 Réception France → CI</div>
+    <div class="amz-card-body">
+      <p style="color:#565959; font-size:13px; margin-bottom:16px;">Enregistrez un colis arrivant de France attendu par un client en Côte d'Ivoire.</p>
+      <a href="/add?type=reception" class="btn btn-secondary" style="width:100%; justify-content:center; font-size:14px; padding:10px;">
+        📥 Créer une réception
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- INFO TARIFAIRE -->
+<div class="amz-card">
+  <div class="amz-card-header">ℹ️ Tarifs & Conditions</div>
+  <div class="amz-card-body">
+    <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:20px;">
+
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#565959;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">⚖️ Tarification</div>
+        <div class="info-row">
+          <div class="info-key">Prix de base</div>
+          <div class="info-val" style="color:#B12704;">10 € / kg</div>
+        </div>
+        <div class="info-row">
+          <div class="info-key">Arrondi</div>
+          <div class="info-val">Au kg supérieur</div>
+        </div>
+        <div class="info-row">
+          <div class="info-key">Taux FCFA</div>
+          <div class="info-val">1€ = 655,96 FCFA</div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#565959;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">📋 Statuts des colis</div>
+        <div class="info-row">
+          <div class="info-val"><span class="badge badge-attente">En attente</span></div>
+          <div class="info-key" style="margin-top:4px;">Colis enregistré, non parti</div>
+        </div>
+        <div class="info-row">
+          <div class="info-val"><span class="badge badge-parti">Parti ✈️</span></div>
+          <div class="info-key" style="margin-top:4px;">Colis expédié vers France</div>
+        </div>
+        <div class="info-row">
+          <div class="info-val"><span class="badge badge-recupere">Récupéré ✓</span></div>
+          <div class="info-key" style="margin-top:4px;">Retiré par le destinataire</div>
+        </div>
+      </div>
+
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#565959;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">💳 Moyens de paiement</div>
+        {% for mp in ['Espèces', 'Wave', 'Orange Money', 'Ria Money Gram', 'Paiement à l\'arrivée'] %}
+        <div class="info-row">
+          <div class="info-val" style="font-size:13px;">{{ mp }}</div>
+        </div>
+        {% endfor %}
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}

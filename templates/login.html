@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Connexion Admin — ColisExpress{% endblock %}
+
+{% block content %}
+<div style="max-width:420px; margin:60px auto;">
+  <div class="amz-card">
+    <div class="amz-card-header" style="justify-content:center;">
+      <span style="font-size:16px;">🔐 Espace Administrateur</span>
+    </div>
+    <div class="amz-card-body">
+
+      {% if error %}
+      <div class="alert alert-error">⚠️ {{ error }}</div>
+      {% endif %}
+
+      <form method="post">
+        <div class="form-group" style="margin-bottom:20px;">
+          <label class="form-label">Mot de passe</label>
+          <input type="password" name="password" class="form-input" placeholder="Saisir le mot de passe…" autofocus required style="font-size:16px; padding:12px;">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;font-size:15px;padding:12px;">
+          Se connecter
+        </button>
+      </form>
+
+      <div style="margin-top:20px; padding-top:20px; border-top:1px solid #E3E6E6; text-align:center;">
+        <a href="/" style="font-size:13px; color:#007185;">← Retour à l'accueil</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

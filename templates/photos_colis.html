@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}Photos — {{ colis.numero_suivi }} — ColisExpress{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+  <a href="/">Accueil</a> ›
+  <a href="/list">Liste</a> ›
+  <span>Photos — {{ colis.numero_suivi or '#' ~ colis.id }}</span>
+</div>
+
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+  <div>
+    <h1 class="page-title" style="margin-bottom:4px;border:none;padding:0;">📷 Photos du colis</h1>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span class="tracking-num" style="font-size:15px;">{{ colis.numero_suivi or '#' ~ colis.id }}</span>
+      {% if colis.type_flux == 'envoi_france' %}<span class="badge badge-envoi">CI → FR</span>{% endif %}
+      {% if colis.statut == 'En attente' %}<span class="badge badge-attente">⏳ En attente</span>
+      {% elif colis.statut == 'Parti' %}<span class="badge badge-parti">✈️ Parti</span>
+      {% else %}<span class="badge badge-recupere">✅ Récupéré</span>{% endif %}
+      <strong style="color:#565959;font-size:14px;">{{ colis.destinataire_nom or '—' }}</strong>
+    </div>
+  </div>
+  <a href="/list" class="btn btn-secondary btn-sm">← Retour liste</a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 320px;gap:20px;align-items:start;">
+
+  <!-- GALERIE -->
+  <div class="amz-card">
+    <div class="amz-card-header">
+      <span>🖼️ Galerie — <strong id="photo-count">{{ photos|length }}</strong> photo{{ 's' if photos|length != 1 else '' }}</span>
+    </div>
+    <div class="amz-card-body" id="gallery-body">
+      {% if photos %}
+      <div id="photos-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;">
+        {% for p in photos %}
+        <div class="photo-card" id="photo-card-{{ p.id }}" style="position:relative;border:1px solid #D5D9D9;border-radius:8px;overflow:hidden;background:#F7FAFA;">
+          <a href="/uploads/{{ p.filename }}" target="_blank">
+            <img src="/uploads/{{ p.filename }}" alt="Photo {{ p.id }}"
+              style="width:100%;aspect-ratio:1;object-fit:cover;display:block;transition:opacity .2s;"
+              onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+            <div style="display:none;width:100%;aspect-ratio:1;align-items:center;justify-content:center;font-size:30px;background:#F0F2F2;color:#888;">🖼️</div>
+          </a>
+          <div style="padding:6px 8px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:10px;color:#565959;">{{ format_date(p.date_upload) }}</span>
+            <button class="btn btn-danger btn-xs" onclick="supprimerPhoto({{ p.id }})">🗑️</button>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state" id="empty-msg" style="padding:40px 20px;">
+        <div class="empty-icon">📷</div>
+        <h3>Aucune photo</h3>
+        <p>Ajoutez des photos avec le formulaire ci-contre.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- UPLOAD -->
+  <div>
+    <div class="amz-card" style="border:2px solid #FF9900;">
+      <div class="amz-card-header" style="background:#FFF8EB;border-bottom-color:#FF9900;">
+        ➕ Ajouter des photos
+      </div>
+      <div class="amz-card-body">
+        <div class="form-group" style="margin-bottom:14px;">
+          <label class="form-label">Sélectionner les photos</label>
+          <input type="file" id="upload-input" class="form-input" accept="image/*" multiple style="padding:6px;" onchange="previewNew(this)">
+          <div class="form-hint">PNG, JPG, GIF, WEBP — sélection multiple possible</div>
+        </div>
+
+        <div id="new-preview" style="display:none;margin-bottom:14px;">
+          <div style="font-size:12px;color:#565959;margin-bottom:6px;" id="new-count"></div>
+          <div id="new-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;"></div>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="uploaderPhotos({{ colis.id }})" id="btn-upload">
+          📤 Uploader les photos
+        </button>
+
+        <div id="upload-progress" style="display:none;margin-top:12px;">
+          <div style="height:6px;background:#E3E6E6;border-radius:3px;overflow:hidden;">
+            <div id="progress-bar" style="height:100%;background:#FF9900;width:0%;transition:width .3s;"></div>
+          </div>
+          <div style="font-size:12px;color:#565959;margin-top:4px;text-align:center;" id="progress-text">Upload en cours…</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="amz-card" style="margin-top:16px;">
+      <div class="amz-card-header">ℹ️ Infos colis</div>
+      <div class="amz-card-body">
+        <div class="info-row">
+          <div class="info-key">Destinataire</div>
+          <div class="info-val">{{ colis.destinataire_nom or '—' }}</div>
+        </div>
+        <div class="info-row">
+          <div class="info-key">Téléphone</div>
+          <div class="info-val">{{ colis.destinataire_telephone or '—' }}</div>
+        </div>
+        <div class="info-row">
+          <div class="info-key">Type colis</div>
+          <div class="info-val">{{ colis.type_colis or '—' }}</div>
+        </div>
+        <div class="info-row">
+          <div class="info-key">Prix</div>
+          <div class="info-val" style="color:#B12704;">{{ colis.prix_final|int if colis.prix_final else '—' }}€</div>
+        </div>
+        <div style="margin-top:14px;">
+          <a href="/recu-a5/{{ colis.id }}" target="_blank" class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;">📄 Voir le reçu</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:2000;align-items:center;justify-content:center;cursor:zoom-out;" onclick="this.style.display='none';">
+  <img id="lightbox-img" src="" style="max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px;">
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function previewNew(input) {
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  const grid = document.getElementById('new-grid');
+  const preview = document.getElementById('new-preview');
+  const count = document.getElementById('new-count');
+  grid.innerHTML = '';
+  count.textContent = files.length + ' photo' + (files.length > 1 ? 's' : '') + ' sélectionnée' + (files.length > 1 ? 's' : '');
+  preview.style.display = '';
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.style.cssText = 'width:100%;aspect-ratio:1;object-fit:cover;border-radius:4px;border:1px solid #D5D9D9;';
+      grid.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function uploaderPhotos(colisId) {
+  const input = document.getElementById('upload-input');
+  if (!input.files.length) { alert('Sélectionnez au moins une photo.'); return; }
+  const formData = new FormData();
+  Array.from(input.files).forEach(f => formData.append('photos', f));
+  const btn = document.getElementById('btn-upload');
+  const prog = document.getElementById('upload-progress');
+  const bar = document.getElementById('progress-bar');
+  const txt = document.getElementById('progress-text');
+  btn.disabled = true;
+  prog.style.display = '';
+  bar.style.width = '30%';
+  txt.textContent = 'Upload en cours…';
+
+  fetch(`/photos/${colisId}/upload`, {method:'POST', body:formData})
+    .then(r => r.json())
+    .then(data => {
+      bar.style.width = '100%';
+      txt.textContent = `✅ ${data.count} photo(s) ajoutée(s)`;
+      setTimeout(() => location.reload(), 800);
+    })
+    .catch(() => {
+      txt.textContent = '❌ Erreur lors de l\'upload';
+      btn.disabled = false;
+    });
+}
+
+function supprimerPhoto(photoId) {
+  if (!confirm('Supprimer cette photo ?')) return;
+  fetch(`/photos/delete/${photoId}`, {method:'DELETE'})
+    .then(r => r.json())
+    .then(() => {
+      const card = document.getElementById(`photo-card-${photoId}`);
+      if (card) {
+        card.style.opacity = '0';
+        card.style.transition = 'opacity .3s';
+        setTimeout(() => {
+          card.remove();
+          const count = document.getElementById('photo-count');
+          count.textContent = parseInt(count.textContent) - 1;
+          const grid = document.getElementById('photos-grid');
+          if (grid && grid.children.length === 0) location.reload();
+        }, 300);
+      }
+    });
+}
+
+// Lightbox sur les images de la galerie
+document.querySelectorAll('#photos-grid img').forEach(img => {
+  img.style.cursor = 'zoom-in';
+  img.addEventListener('click', e => {
+    e.preventDefault();
+    const lb = document.getElementById('lightbox');
+    document.getElementById('lightbox-img').src = img.src;
+    lb.style.display = 'flex';
+  });
+});
+</script>
+{% endblock %}
